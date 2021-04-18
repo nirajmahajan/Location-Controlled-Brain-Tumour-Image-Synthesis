@@ -1,0 +1,2 @@
+task1 - brats to jpeg creator
+task2 - dataset object + pix2pix model
