@@ -1,5 +1,6 @@
 task1 - brats to jpeg creator
 task2 - Pix2Pix for rectifier
 task2.1 - Pix2Pix for rectifier - even LGG cropped
+task2.2 - Pix2Pix for rectifier - even LGG cropped - MSE loss
 task3 - Contextencoder for rectifier
 task4 - Tumor Generator - DCGAN
