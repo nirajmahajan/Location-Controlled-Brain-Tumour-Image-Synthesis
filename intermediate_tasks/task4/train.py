@@ -18,7 +18,7 @@ from sklearn.mixture import GaussianMixture
 from sklearn.decomposition import PCA
 import gc
 
-from myModels import cDCGAN
+from myModels import DCGAN
 from myDatasets import BRATS_T1c
 
 def seed_torch(seed=0):
@@ -78,13 +78,12 @@ if not os.path.isdir(os.path.join(runtime_path,'./images/test')):
 transform = transforms.Compose([
             transforms.Resize(256),
                     ])
-
 dataset = BRATS_T1c(train_ratio = 0.75, transform = transform, verticalflip = True)
 dataloader = torch.utils.data.DataLoader(dataset, batch_size=TRAIN_BATCH_SIZE, num_workers = 2, shuffle = True)
 dataset.set_train(train = True)
-dataset.set_healthy(healthy = True)
+dataset.set_healthy(healthy = False)
 
-model = cDCGAN()
+model = DCGAN()
 
 global pre_e
 pre_e = 0
@@ -120,8 +119,8 @@ def train(e):
     tot_loss_g = 0
     tot_loss_d = 0
 
-    for batch_num,(target,mask,cropped,segment) in tqdm(enumerate(dataloader), desc = 'Epoch {}'.format(e), total = len(dataloader)):
-        lg, ld = model.train_epoch(e, batch_num, mask, segment)
+    for batch_num,(target,mask,cropped,segment,tumor) in tqdm(enumerate(dataloader), desc = 'Epoch {}'.format(e), total = len(dataloader)):
+        lg, ld = model.train_epoch(e, batch_num, tumor)
         tot_loss_d += ld
         tot_loss_g += lg
 
@@ -136,26 +135,21 @@ def validate():
     num_samples = TRAIN_BATCH_SIZE
 
     with torch.no_grad():
-        for batch_num,(target,mask,cropped,segment) in enumerate(dataloader):
+        for batch_num,(target,mask,cropped,segment,tumor) in enumerate(dataloader):
             model.eval()
-            fake = model.generate(mask.to(device))
+            fake = model.generate(num_samples)
             break
         for i in range(num_samples):
-            s = mask[i].squeeze().detach().cpu().numpy()
-            t = segment[i].squeeze().detach().cpu().numpy()
+            t = tumor[i].squeeze().detach().cpu().numpy()
             f = fake[i].squeeze().detach().cpu().numpy()
-            fig = plt.figure(figsize = (9,3))
-            plt.subplot(1,3,1)
-            plt.imshow(s, cmap = 'gray')
-            plt.title('Input Mask')
-            plt.axis('off')
-            plt.subplot(1,3,2)
+            fig = plt.figure(figsize = (6,3))
+            plt.subplot(1,2,1)
             plt.imshow(t, cmap = 'gray')
             plt.title('Dataset Image')
             plt.axis('off')
-            plt.subplot(1,3,3)
+            plt.subplot(1,2,2)
             plt.imshow(f, cmap = 'gray')
-            plt.title('Generated Image')
+            plt.title('Generated Tumor')
             plt.axis('off')
             plt.savefig('images/test/test_{}.png'.format(i))
 

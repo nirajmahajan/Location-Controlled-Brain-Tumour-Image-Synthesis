@@ -27,7 +27,8 @@ def cropped(a1,a2, skip_if_binary = False):
     anew[rmin:rmax,cmin:cmax] = 0
     mask = torch.zeros(anew.shape)
     mask[rmin:rmax,cmin:cmax] = 1
-    return anew, mask
+    tumor = a1[rmin:rmax,cmin:cmax]
+    return anew, mask, tumor
 
 class BRATS_T1c(Dataset):
     """docstring for BRATS_T1c"""
@@ -43,6 +44,11 @@ class BRATS_T1c(Dataset):
         self.healthy_mode = False
         self.get_cropped_mode = False
         self.transform = transform
+        self.tumor_transform = transforms.Compose([
+                        transforms.ToPILImage(),
+                        transforms.Resize((64,64)),
+                        transforms.ToTensor(),
+                                        ])
         self.verticalflip = verticalflip
 
         print('Generating indices .... ', end = '', flush = True)
@@ -102,19 +108,21 @@ class BRATS_T1c(Dataset):
     def __getitem__(self, i):
         assert(i < self.current_indices.shape[0])
         index = self.current_indices[i]
-        cropped_image, mask = cropped(self.data[index,:,:,0], self.data[index,:,:,1])
+        cropped_image, mask, tumor = cropped(self.data[index,:,:,0], self.data[index,:,:,1])
         segment = self.data[index,:,:,1]
+        tumor = self.tumor_transform(tumor)
         if self.verticalflip and random.randint(0,1) == 1:
             target = torch.flipud(self.data[index,:,:,0]).unsqueeze(0)
             mask = torch.flipud(mask).unsqueeze(0)
             cropped_image = torch.flipud(cropped_image).unsqueeze(0)
             segment = torch.flipud(segment).unsqueeze(0)
+            tumor = torch.flipud(tumor)
         else:
             target = self.data[index,:,:,0].unsqueeze(0)
             mask = mask.unsqueeze(0)
             cropped_image = cropped_image.unsqueeze(0)
             segment = segment.unsqueeze(0)
-        return self.transform(target), self.transform(mask), self.transform(cropped_image), self.transform(segment)
+        return self.transform(target), self.transform(mask), self.transform(cropped_image), self.transform(segment), tumor
         
 
     def display(self, i):

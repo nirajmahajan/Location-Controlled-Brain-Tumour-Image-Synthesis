@@ -120,7 +120,7 @@ def train(e):
     tot_loss_g = 0
     tot_loss_d = 0
 
-    for batch_num,(target,mask,cropped,segment) in tqdm(enumerate(dataloader), desc = 'Epoch {}'.format(e), total = len(dataloader)):
+    for batch_num,(target,mask,cropped,segment,tumor) in tqdm(enumerate(dataloader), desc = 'Epoch {}'.format(e), total = len(dataloader)):
         lg, ld = rectifier.train_epoch(e, batch_num, cropped, target)
         tot_loss_d += ld
         tot_loss_g += lg
@@ -136,7 +136,7 @@ def validate():
     num_samples = TRAIN_BATCH_SIZE
 
     with torch.no_grad():
-        for batch_num,(target,mask,cropped,segment) in enumerate(dataloader):
+        for batch_num,(target,mask,cropped,segment,tumor) in enumerate(dataloader):
             rectifier.eval()
             fake = rectifier.generate(cropped.to(device))
             break

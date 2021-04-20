@@ -22,11 +22,11 @@ class Identity(nn.Module):
     def forward(self, x):
         return x
 
-class cDCGAN(nn.Module):
+class DCGAN(nn.Module):
     def __init__(self, lr = 2e-4):
-        super(cDCGAN, self).__init__()
-        self.generator = Generator((1,256,256)).to(device)
-        self.discriminator = Discriminator((1,256,256)).to(device)
+        super(DCGAN, self).__init__()
+        self.generator = Generator((1,64,64)).to(device)
+        self.discriminator = Discriminator((1,64,64)).to(device)
 
         self.criterionBCE = nn.BCELoss().to(device)
 
@@ -44,38 +44,35 @@ class cDCGAN(nn.Module):
     def generate(self, skeleton):
         return self.generator(skeleton.to(device))
 
-    def train_epoch(self, e, batch_num, mask, target):
-        fake_images = self.generator((mask*torch.randn(mask.shape)).to(device))
+    def train_epoch(self, e, batch_num, target):
+        noise = torch.randn(target.shape[0],32).to(device)
+        fake_images = self.generator(noise)
 
         if batch_num == 0 and (e%10 == 0 or e < 10):
             for i in range(1):
-                s = mask[i].squeeze().detach().cpu().numpy()
                 t = target[i].squeeze().detach().cpu().numpy()
-                f = (fake_images*mask.to(device))[i].squeeze().detach().cpu().numpy()
-                fig = plt.figure(figsize = (9,3))
-                plt.subplot(1,3,1)
-                plt.imshow(s, cmap = 'gray')
-                plt.title('Input Mask')
-                plt.axis('off')
-                plt.subplot(1,3,2)
+                f = fake_images[i].squeeze().detach().cpu().numpy()
+                fig = plt.figure(figsize = (6,3))
+                plt.subplot(1,2,1)
                 plt.imshow(t, cmap = 'gray')
                 plt.title('Dataset Image')
                 plt.axis('off')
-                plt.subplot(1,3,3)
+                plt.subplot(1,2,2)
                 plt.imshow(f, cmap = 'gray')
-                plt.title('Generated Image')
+                plt.title('Generated Tumor')
                 plt.axis('off')
                 plt.savefig('images/train/epoch{}_{}.png'.format(e, i))
 
 
-        lD = self.learn_D(mask.to(device), fake_images, target.to(device))
-        lG = self.learn_G(fake_images, mask.to(device))
+        lD = self.learn_D(fake_images, target.to(device))
+        lG = self.learn_G(fake_images)
         return lG, lD
 
-    def generate(self, mask):
-        return self.generator((mask*torch.randn(mask.shape)).to(device))*mask
+    def generate(self, n):
+        noise = torch.randn(n,32).to(device)
+        return self.generator(noise)
 
-    def learn_D(self, mask, fake_images, target):
+    def learn_D(self, fake_images, target):
         self.switch_on_discriminator()
         self.optimizer_D.zero_grad()
         pred_fake = self.discriminator(fake_images.detach())
@@ -89,91 +86,117 @@ class cDCGAN(nn.Module):
         self.optimizer_D.step()
         return loss_D.item()
 
-    def learn_G(self, fake_images, mask):
+    def learn_G(self, fake_images):
         self.switch_off_discriminator()
         self.optimizer_G.zero_grad()
         pred_fake = self.discriminator(fake_images)
-        loss_G_disc = self.criterionBCE(pred_fake, torch.ones(fake_images.shape[0],1).to(device))
-        loss_G_bound = ((1-mask)*fake_images).abs().sum()*100
-        loss_G = loss_G_disc + loss_G_bound
+        loss_G = self.criterionBCE(pred_fake, torch.ones(fake_images.shape[0],1).to(device))
         loss_G.backward()
         self.optimizer_G.step()
         return loss_G.item()
 
-class UNetDown(nn.Module):
-    def __init__(self, in_size, out_size, normalize=True, dropout=0.0):
-        super(UNetDown, self).__init__()
-        model = [nn.Conv2d(in_size, out_size, 4, stride=2, padding=1, bias=False)]
-        if normalize:
-            model.append(nn.BatchNorm2d(out_size, 0.8))
-        model.append(nn.LeakyReLU(0.2))
-        if dropout:
-            model.append(nn.Dropout(dropout))
+# class UNetDown(nn.Module):
+#     def __init__(self, in_size, out_size, normalize=True, dropout=0.0):
+#         super(UNetDown, self).__init__()
+#         model = [nn.Conv2d(in_size, out_size, 4, stride=2, padding=1, bias=False)]
+#         if normalize:
+#             model.append(nn.BatchNorm2d(out_size, 0.8))
+#         model.append(nn.LeakyReLU(0.2))
+#         if dropout:
+#             model.append(nn.Dropout(dropout))
 
-        self.model = nn.Sequential(*model)
+#         self.model = nn.Sequential(*model)
 
-    def forward(self, x):
-        return self.model(x)
+#     def forward(self, x):
+#         return self.model(x)
 
 
-class UNetUp(nn.Module):
-    def __init__(self, in_size, out_size, dropout=0.0):
-        super(UNetUp, self).__init__()
-        model = [
-            nn.ConvTranspose2d(in_size, out_size, 4, stride=2, padding=1, bias=False),
-            nn.BatchNorm2d(out_size, 0.8),
-            nn.ReLU(inplace=True),
-        ]
-        if dropout:
-            model.append(nn.Dropout(dropout))
+# class UNetUp(nn.Module):
+#     def __init__(self, in_size, out_size, dropout=0.0):
+#         super(UNetUp, self).__init__()
+#         model = [
+#             nn.ConvTranspose2d(in_size, out_size, 4, stride=2, padding=1, bias=False),
+#             nn.BatchNorm2d(out_size, 0.8),
+#             nn.ReLU(inplace=True),
+#         ]
+#         if dropout:
+#             model.append(nn.Dropout(dropout))
 
-        self.model = nn.Sequential(*model)
+#         self.model = nn.Sequential(*model)
 
-    def forward(self, x, skip_input):
-        x = self.model(x)
-        out = torch.cat((x, skip_input), 1)
-        return out
+#     def forward(self, x, skip_input):
+#         x = self.model(x)
+#         out = torch.cat((x, skip_input), 1)
+#         return out
 
+
+# class Generator(nn.Module):
+#     def __init__(self, input_shape = (1,64,64)):
+#         super(Generator, self).__init__()
+#         channels, _, _ = input_shape
+#         self.down1 = UNetDown(channels, 64, normalize=False)
+#         self.down2 = UNetDown(64, 128)
+#         self.down3 = UNetDown(128, 256, dropout=0.5)
+#         self.down4 = UNetDown(256, 512, dropout=0.5)
+#         self.down5 = UNetDown(512, 512, dropout=0.5)
+
+#         self.up2 = UNetUp(512, 512, dropout=0.5)
+#         self.up3 = UNetUp(1024, 256, dropout=0.5)
+#         self.up4 = UNetUp(512, 128)
+#         self.up5 = UNetUp(256, 64)
+
+#         final = [nn.Upsample(scale_factor=2), nn.Conv2d(128, channels, 3, 1, 1), nn.Sigmoid()]
+#         self.final = nn.Sequential(*final)
+#         self.inp = nn.Sequential(nn.Linear(128,1024), nn.ReLU())
+
+#     def forward(self, x):
+#         # U-Net generator with skip connections from encoder to decoder
+#         x = self.inp(x).reshape(-1,1,64,64)
+#         d1 = self.down1(x)
+#         d2 = self.down2(d1)
+#         d3 = self.down3(d2)
+#         d4 = self.down4(d3)
+#         d5 = self.down5(d4)
+#         u2 = self.up2(d5, d4)
+#         u3 = self.up3(u2, d3)
+#         u4 = self.up4(u3, d2)
+#         u5 = self.up5(u4, d1)
+
+#         return self.final(u5)
 
 class Generator(nn.Module):
-    def __init__(self, input_shape = (1,256,256)):
+    def __init__(self, input_shape = (1,64,64)):
         super(Generator, self).__init__()
         channels, _, _ = input_shape
-        self.down1 = UNetDown(channels, 64, normalize=False)
-        self.down2 = UNetDown(64, 128)
-        self.down3 = UNetDown(128, 256, dropout=0.5)
-        self.down4 = UNetDown(256, 512, dropout=0.5)
-        self.down5 = UNetDown(512, 512, dropout=0.5)
-        self.down6 = UNetDown(512, 512, dropout=0.5)
+        self.model = nn.Sequential(
+                nn.ConvTranspose2d(512, 256, 4, stride=2, padding=1, bias=False),
+                nn.BatchNorm2d(256, 0.8),
+                nn.ReLU(inplace=True),
+                nn.ConvTranspose2d(256, 128, 4, stride=2, padding=1, bias=False),
+                nn.BatchNorm2d(128, 0.8),
+                nn.ReLU(inplace=True),
+                nn.ConvTranspose2d(128, 64, 4, stride=2, padding=1, bias=False),
+                nn.BatchNorm2d(64, 0.8),
+                nn.ReLU(inplace=True),
+                nn.ConvTranspose2d(64, 32, 4, stride=2, padding=1, bias=False),
+                nn.BatchNorm2d(32, 0.8),
+                nn.ReLU(inplace=True),
+                nn.ConvTranspose2d(32, 16, 4, stride=2, padding=1, bias=False),
+                nn.BatchNorm2d(16, 0.8),
+                nn.ReLU(inplace=True),
+                nn.ConvTranspose2d(16, 1, 4, stride=2, padding=1, bias=False),
+                nn.Tanh(),
+            )
 
-        self.up1 = UNetUp(512, 512, dropout=0.5)
-        self.up2 = UNetUp(1024, 512, dropout=0.5)
-        self.up3 = UNetUp(1024, 256, dropout=0.5)
-        self.up4 = UNetUp(512, 128)
-        self.up5 = UNetUp(256, 64)
-
-        final = [nn.Upsample(scale_factor=2), nn.Conv2d(128, channels, 3, 1, 1), nn.Tanh()]
-        self.final = nn.Sequential(*final)
+        self.inp = nn.Sequential(nn.Linear(32,512), nn.ReLU())
 
     def forward(self, x):
         # U-Net generator with skip connections from encoder to decoder
-        d1 = self.down1(x)
-        d2 = self.down2(d1)
-        d3 = self.down3(d2)
-        d4 = self.down4(d3)
-        d5 = self.down5(d4)
-        d6 = self.down6(d5)
-        u1 = self.up1(d6, d5)
-        u2 = self.up2(u1, d4)
-        u3 = self.up3(u2, d3)
-        u4 = self.up4(u3, d2)
-        u5 = self.up5(u4, d1)
-
-        return self.final(u5)
-
+        x = self.inp(x).reshape(-1,512,1,1)
+        return self.model(x)
 
 class Discriminator(nn.Module):
-    def __init__(self, input_shape = (2,256,256)):
+    def __init__(self, input_shape = (1,64,64)):
         super(Discriminator, self).__init__()
 
         channels, height, width = input_shape
@@ -195,7 +218,7 @@ class Discriminator(nn.Module):
             layers.extend(discriminator_block(in_filters, out_filters, stride, normalize))
             in_filters = out_filters
 
-        layers.append(nn.Conv2d(out_filters, 1, 3, 1, 1))
+        layers.append(nn.Conv2d(out_filters, out_filters//32, 3, 1, 1))
 
         self.model = nn.Sequential(*layers)
 
