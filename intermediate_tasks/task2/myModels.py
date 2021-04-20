@@ -72,8 +72,8 @@ class GANloss(nn.Module):
 class Pix2pix(nn.Module):
     def __init__(self, lr = 2e-4):
         super(Pix2pix, self).__init__()
-        self.generator = Generator()
-        self.discriminator = Discriminator()
+        self.generator = Generator().to(device)
+        self.discriminator = Discriminator().to(device)
 
         self.criterionGAN = GANloss().to(device)
         self.criterionL1 = torch.nn.L1Loss().to(device)
@@ -97,19 +97,25 @@ class Pix2pix(nn.Module):
         # target nx240x240
         fake_images = self.generator(skeleton.to(device))
 
-        if batch_num == 0 and (epoch % 10 == 0 or epoch < 10):
+        if batch_num == 0 and (e%10 == 0 or e < 10):
             for i in range(1):
-                r = target[i].squeeze().detach().cpu().numpy()
                 s = skeleton[i].squeeze().detach().cpu().numpy()
+                t = target[i].squeeze().detach().cpu().numpy()
                 f = fake_images[i].squeeze().detach().cpu().numpy()
-                fig = plt.figure(figsize = (10,4))
+                fig = plt.figure(figsize = (9,3))
                 plt.subplot(1,3,1)
-                plt.imshow(r, cmap = 'gray')
-                plt.subplot(1,3,2)
                 plt.imshow(s, cmap = 'gray')
+                plt.title('Cropped Image')
+                plt.axis('off')
+                plt.subplot(1,3,2)
+                plt.imshow(t, cmap = 'gray')
+                plt.title('Target Image')
+                plt.axis('off')
                 plt.subplot(1,3,3)
                 plt.imshow(f, cmap = 'gray')
-                plt.savefig('images/train/epoch{}_{}.png'.format(epoch, i))
+                plt.title('Generated Image')
+                plt.axis('off')
+                plt.savefig('images/train/epoch{}_{}.png'.format(e, i))
 
 
         lD = self.learn_D(skeleton.to(device), fake_images, target.to(device))

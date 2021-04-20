@@ -18,7 +18,7 @@ from sklearn.mixture import GaussianMixture
 from sklearn.decomposition import PCA
 import gc
 
-from myModels import Pix2pix
+from myModels import ContextEncoder
 from myDatasets import BRATS_T1c
 
 def seed_torch(seed=0):
@@ -49,7 +49,7 @@ SAVE_INTERVAL = 25
 STATE_INTERVAL = 200
 NUM_EPOCHS = 2000
 EXPERIMENT_ID = args.id
-expected_id = '2'
+expected_id = '3'
 assert(expected_id == EXPERIMENT_ID)
 glosses = []
 dlosses = []
@@ -84,7 +84,7 @@ dataloader = torch.utils.data.DataLoader(dataset, batch_size=TRAIN_BATCH_SIZE, n
 dataset.set_train(train = True)
 dataset.set_healthy(healthy = True)
 
-rectifier = Pix2pix()
+rectifier = ContextEncoder()
 
 global pre_e
 pre_e = 0

@@ -1,2 +1,4 @@
 task1 - brats to jpeg creator
-task2 - dataset object + pix2pix model
+task2 - Pix2Pix for rectifier
+task3 - Contextencoder for rectifier
+task4 - Segment Generator - cDCGAN

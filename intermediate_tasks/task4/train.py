@@ -18,7 +18,7 @@ from sklearn.mixture import GaussianMixture
 from sklearn.decomposition import PCA
 import gc
 
-from myModels import Pix2pix
+from myModels import cDCGAN
 from myDatasets import BRATS_T1c
 
 def seed_torch(seed=0):
@@ -49,7 +49,7 @@ SAVE_INTERVAL = 25
 STATE_INTERVAL = 200
 NUM_EPOCHS = 2000
 EXPERIMENT_ID = args.id
-expected_id = '2'
+expected_id = '4'
 assert(expected_id == EXPERIMENT_ID)
 glosses = []
 dlosses = []
@@ -84,7 +84,7 @@ dataloader = torch.utils.data.DataLoader(dataset, batch_size=TRAIN_BATCH_SIZE, n
 dataset.set_train(train = True)
 dataset.set_healthy(healthy = True)
 
-rectifier = Pix2pix()
+model = cDCGAN()
 
 global pre_e
 pre_e = 0
@@ -101,9 +101,9 @@ if args.resume or args.resume_from_drive:
     print('Loading checkpoint at model state {}'.format(model_state))
     dic = torch.load(local_path + 'checkpoint_{}.pth'.format(model_state))
     pre_e = dic['e']
-    rectifier.load_state_dict(dic['rectifier'])
-    rectifier.optimizer_G.load_state_dict(dic['optimizer_G'])
-    rectifier.optimizer_D.load_state_dict(dic['optimizer_D'])
+    model.load_state_dict(dic['model'])
+    model.optimizer_G.load_state_dict(dic['optimizer_G'])
+    model.optimizer_D.load_state_dict(dic['optimizer_D'])
     glosses = dic['glosses']
     dlosses = dic['dlosses']
     print('Resuming Training from epoch {} for Experiment {}'.format(pre_e,EXPERIMENT_ID))
@@ -121,7 +121,7 @@ def train(e):
     tot_loss_d = 0
 
     for batch_num,(target,mask,cropped,segment) in tqdm(enumerate(dataloader), desc = 'Epoch {}'.format(e), total = len(dataloader)):
-        lg, ld = rectifier.train_epoch(e, batch_num, cropped, target)
+        lg, ld = model.train_epoch(e, batch_num, mask, segment)
         tot_loss_d += ld
         tot_loss_g += lg
 
@@ -137,21 +137,21 @@ def validate():
 
     with torch.no_grad():
         for batch_num,(target,mask,cropped,segment) in enumerate(dataloader):
-            rectifier.eval()
-            fake = rectifier.generate(cropped.to(device))
+            model.eval()
+            fake = model.generate(mask.to(device))
             break
         for i in range(num_samples):
-            s = cropped[i].squeeze().detach().cpu().numpy()
-            t = target[i].squeeze().detach().cpu().numpy()
+            s = mask[i].squeeze().detach().cpu().numpy()
+            t = segment[i].squeeze().detach().cpu().numpy()
             f = fake[i].squeeze().detach().cpu().numpy()
             fig = plt.figure(figsize = (9,3))
             plt.subplot(1,3,1)
             plt.imshow(s, cmap = 'gray')
-            plt.title('Cropped Image')
+            plt.title('Input Mask')
             plt.axis('off')
             plt.subplot(1,3,2)
             plt.imshow(t, cmap = 'gray')
-            plt.title('Target Image')
+            plt.title('Dataset Image')
             plt.axis('off')
             plt.subplot(1,3,3)
             plt.imshow(f, cmap = 'gray')
@@ -183,9 +183,9 @@ for e in range(NUM_EPOCHS):
 
     dic = {}
     dic['e'] = e+1
-    dic['rectifier'] = rectifier.state_dict()
-    dic['optimizer_G'] = rectifier.optimizer_G.state_dict()
-    dic['optimizer_D'] = rectifier.optimizer_D.state_dict()
+    dic['model'] = model.state_dict()
+    dic['optimizer_G'] = model.optimizer_G.state_dict()
+    dic['optimizer_D'] = model.optimizer_D.state_dict()
     dic['dlosses'] = dlosses
     dic['glosses'] = glosses
 

@@ -1,0 +1,1 @@
+https://github.com/MaciejMazurowski/brain-segmentation/tree/master/skull-stripping
