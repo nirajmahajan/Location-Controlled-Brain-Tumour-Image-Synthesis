@@ -17,8 +17,8 @@ def check_binary(inp):
 def cropped(a1,a2, skip_if_binary = False):
     if skip_if_binary and check_binary(a2):
         return a1
-    rr = torch.arange(a2.shape[1])[(a2>0.9).sum(1) > 0]
-    cc = torch.arange(a2.shape[0])[(a2>0.9).sum(0) > 0]
+    rr = torch.arange(a2.shape[1])[(a2>0.5).sum(1) > 0]
+    cc = torch.arange(a2.shape[0])[(a2>0.5).sum(0) > 0]
     rmin = rr.min()
     rmax = rr.max()
     cmin = cc.min()
