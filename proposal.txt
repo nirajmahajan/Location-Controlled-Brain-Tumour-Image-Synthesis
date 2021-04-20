@@ -1,0 +1,5 @@
+Team Members:
+Abhinav Kumar 180050003
+Niraj Mahajan 180050069
+
+Project Title: Location Controlled Brain Tumour Image Synthesis using controllable GANs
