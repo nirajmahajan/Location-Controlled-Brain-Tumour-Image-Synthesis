@@ -86,7 +86,7 @@ class ContextEncoder(nn.Module):
         loss_D_fake = self.criterionBCE(pred_fake, torch.zeros(fake_space.shape[0],1).to(device))
 
         pred_real = self.discriminator(true_space.detach())
-        loss_D_real = self.criterionBCE(pred_fake, torch.ones(true_space.shape[0],1).to(device))
+        loss_D_real = self.criterionBCE(pred_real, torch.ones(true_space.shape[0],1).to(device))
 
         loss_D = (loss_D_real + loss_D_fake)/2
         loss_D.backward()

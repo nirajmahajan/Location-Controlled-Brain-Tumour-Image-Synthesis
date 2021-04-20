@@ -92,7 +92,7 @@ class Pix2pix(nn.Module):
     def generate(self, skeleton):
         return self.generator(skeleton.to(device))
 
-    def train_epoch(self, epoch, batch_num, skeleton, target):
+    def train_epoch(self, e, batch_num, skeleton, target):
         # skeleton nx240x240
         # target nx240x240
         fake_images = self.generator(skeleton.to(device))
@@ -131,7 +131,7 @@ class Pix2pix(nn.Module):
 
         realpairs = torch.cat((skeleton, target), 1)
         pred_real = self.discriminator(realpairs)
-        loss_D_real = self.criterionGAN(pred_fake, True)
+        loss_D_real = self.criterionGAN(pred_real, True)
 
         loss_D = (loss_D_real + loss_D_fake)/2
         loss_D.backward()
