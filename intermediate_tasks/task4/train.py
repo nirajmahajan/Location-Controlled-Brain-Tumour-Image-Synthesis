@@ -131,7 +131,7 @@ def train(e):
 def validate():
     print('\nTesting')
     dataset.set_train(train = False)
-    dataset.set_healthy(healthy = None)
+    dataset.set_healthy(healthy = False)
     num_samples = TRAIN_BATCH_SIZE
 
     with torch.no_grad():
