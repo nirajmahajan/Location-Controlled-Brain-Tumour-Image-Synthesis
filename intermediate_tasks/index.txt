@@ -6,3 +6,4 @@ task3 - Contextencoder for rectifier
 task4 - Tumor Generator - DCGAN
 task5 - Pix2Pix for final model with 2.1, training only on HGG images, lsgan
 task5.1 - Pix2Pix for final model with 2.1, training only on HGG images, vanilla gan
+task6 - Tumor Classifier
