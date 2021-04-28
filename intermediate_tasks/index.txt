@@ -4,3 +4,4 @@ task2.1 - Pix2Pix for rectifier - even LGG cropped
 task2.2 - Pix2Pix for rectifier - even LGG cropped - MSE loss
 task3 - Contextencoder for rectifier
 task4 - Tumor Generator - DCGAN
+task5 - Pix2Pix for final model with 2.1, training only on HGG images
