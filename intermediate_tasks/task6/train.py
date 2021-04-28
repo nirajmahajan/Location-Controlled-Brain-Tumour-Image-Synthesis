@@ -83,11 +83,11 @@ dataloader = torch.utils.data.DataLoader(dataset, batch_size=TRAIN_BATCH_SIZE, s
 dataset.set_train(train = True)
 dataset.set_healthy(healthy = False)
 
-model = models.AlexNet(num_classes = 2).to(device)
+model = nn.Sequential(models.AlexNet(num_classes = 2).to(device), nn.ReLU())
 model.features[0] = nn.Conv2d(1, 64, kernel_size=(11, 11), stride=(4, 4), padding=(2, 2)).to(device)
 criterion = nn.CrossEntropyLoss().to(device)
 
-optimizer = torch.optim.SGD(model.parameters(), lr=3e-2, momentum = 0.9, weight_decay=5e-4)
+optimizer = torch.optim.SGD(model.parameters(), lr=3e-3, momentum = 0.9, weight_decay=5e-4)
 scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.1)
 
 global pre_e
@@ -122,7 +122,7 @@ def is_eval_mode():
 def train(e):
     dataset.set_train(True)
     dataset.set_healthy(False)
-    print('\nTraining for epoch {}'.format(e))
+    # print('\nTraining for epoch {}'.format(e))
     tot_loss = 0
     tot_correct = 0
     tot = 0
@@ -149,11 +149,12 @@ def train(e):
         tot_loss += loss.item()
 
     print('Total Loss for epoch = {}'.format(tot_loss/batch_num))
-    print('Train Accuracy for epoch = {}'.format(tot_correct/tot))
-    return tot_loss/batch_num
+    print('Train Accuracy for epoch = {}'.format(100*tot_correct/tot))
+    return 100*tot_loss/batch_num
 
-def validate():
-    print('\nTesting')
+def validate(silent = True):
+    if silent:
+        print('\nTesting')
     dataset.set_train(False)
     dataset.set_healthy(False)
     tot_correct = 0
@@ -172,8 +173,8 @@ def validate():
             tot_correct += (preds.detach().cpu().numpy() == labels.cpu().numpy()).sum()
             tot += preds.shape[0]
 
-        print('Test Accuracy for epoch = {}\n'.format(tot_correct/tot))
-        return tot_correct/tot
+        print('Test Accuracy for epoch = {}\n'.format(100*tot_correct/tot))
+        return 100*tot_correct/tot
     
 
 if args.eval:
