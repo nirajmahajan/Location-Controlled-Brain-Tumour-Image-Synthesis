@@ -83,7 +83,7 @@ dataloader = torch.utils.data.DataLoader(dataset, batch_size=TRAIN_BATCH_SIZE, s
 dataset.set_train(train = True)
 dataset.set_healthy(healthy = False)
 
-model = nn.Sequential(models.AlexNet(num_classes = 2).to(device), nn.ReLU())
+model = models.AlexNet(num_classes = 2).to(device)
 model.features[0] = nn.Conv2d(1, 64, kernel_size=(11, 11), stride=(4, 4), padding=(2, 2)).to(device)
 criterion = nn.CrossEntropyLoss().to(device)
 
