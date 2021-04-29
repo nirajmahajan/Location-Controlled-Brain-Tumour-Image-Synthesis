@@ -89,8 +89,9 @@ class Pix2pix(nn.Module):
         for param in self.discriminator.parameters():
             param.requires_grad = True
 
-    def generate(self, skeleton):
-        return self.generator(skeleton.to(device))
+    def generate(self, mask, rectified):
+        inp = torch.cat((mask.to(device), rectified.to(device)),1)
+        return self.generator(inp)
 
     def train_epoch(self, e, batch_num, mask,rectified, target):
         # skeleton nx240x240

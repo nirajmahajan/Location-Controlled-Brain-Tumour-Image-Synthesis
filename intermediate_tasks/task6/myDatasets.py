@@ -18,11 +18,13 @@ def check_binary(inp):
 
 class BRATS_T1c(Dataset):
     """docstring for BRATS_T1c"""
-    def __init__(self, train_ratio = 0.75, transform = transforms.Resize(256), verticalflip = True, loadRectifier = False):
+    def __init__(self, train_ratio = 0.75, transform = transforms.Resize(256), verticalflip = True, loadRectifier = True):
         super(BRATS_T1c, self).__init__()
         print('Loading data .... ', end = '', flush = True)
         self.data = torch.load('/content/drive/Shareddrives/Datasets/BRATS/data_t1c_ot.pth')['data']
         self.data = torch.swapaxes(self.data, 1,4).reshape(-1,240,240,2)
+        self.corrected = torch.zeros((self.data.shape[0],1,256,256))
+        self.memoised = np.zeros(self.data.shape[0]) == 1
         self.badvals = torch.arange(self.data.shape[0])[self.data.isnan().any(1).any(1).any(1)]
         print('   Done', end = '\n', flush = True)
 
@@ -73,7 +75,16 @@ class BRATS_T1c(Dataset):
         self.current_indices = np.setdiff1d(self.combined_indices, self.badvals)
         print('   Done', end = '\n', flush = True)
 
-    def cropped(self,a1,a2, skip_if_binary = False):
+    def fetch_rectified(self, index, cropped):
+        if self.memoised[index]:
+            return self.corrected[index]
+        else:
+            self.memoised[index] = True
+            self.rectifier.eval()
+            self.corrected[index] = self.rectifier.generate(self.transform(cropped.squeeze().unsqueeze(0).unsqueeze(0)).to(device)).squeeze().unsqueeze(0)
+            return self.corrected[index]
+
+    def cropped(self,a1,a2, index, skip_if_binary = False):
         if skip_if_binary and check_binary(a2):
             return a1
         rr = torch.arange(a2.shape[1])[(a2>0.5).sum(1) > 0]
@@ -85,13 +96,12 @@ class BRATS_T1c(Dataset):
         anew = a1.clone()
         anew[rmin:rmax,cmin:cmax] = 0
 
-        self.rectifier.eval()
-        rectified = self.rectifier.generate(self.transform(anew.unsqueeze(0).unsqueeze(0)).to(device)).squeeze()
+        rectified = self.fetch_rectified(index, anew)
         mask = torch.zeros(anew.shape)
         mask[rmin:rmax,cmin:cmax] = 1
         tumor = a1[rmin:rmax,cmin:cmax]
-        good = rectified[rmin:rmax,cmin:cmax]
-        return anew, mask, tumor, good, rectified.unsqueeze(0)
+        good = rectified[0,rmin:rmax,cmin:cmax]
+        return anew, mask, tumor, good, rectified
 
     def set_train(self, train = True):
         self.train_mode = train
@@ -129,7 +139,7 @@ class BRATS_T1c(Dataset):
     def __getitem__(self, i):
         assert(i < self.current_indices.shape[0])
         index = self.current_indices[i]
-        cropped_image, mask, tumor, good, rectified = self.cropped(self.data[index,:,:,0], self.data[index,:,:,1])
+        cropped_image, mask, tumor, good, rectified = self.cropped(self.data[index,:,:,0], self.data[index,:,:,1], index)
         segment = self.data[index,:,:,1]
         tumor = self.tumor_transform(tumor)
         good = self.tumor_transform(good)
@@ -156,7 +166,7 @@ class BRATS_T1c(Dataset):
         index = self.current_indices[i]
         a1 = self.data[index,:,:,0]
         a2 = self.data[index,:,:,1]
-        c,_ = self.cropped(self.data[index,:,:,0], self.data[index,:,:,1])
+        c,_ = self.cropped(self.data[index,:,:,0], self.data[index,:,:,1], index)
         
         fig = plt.figure()
         plt.subplot(1,3,1)

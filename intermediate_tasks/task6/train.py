@@ -127,11 +127,11 @@ def train(e):
     tot_correct = 0
     tot = 0
 
-    for batch_num,(target,mask,cropped,segment,tumor,good,rectified) in tqdm(enumerate(dataloader), desc = 'Epoch {}'.format(e), total = len(dataloader)):
+    for batch_num,(target,mask,cropped,segment,tumor,good_cropped,rectified) in tqdm(enumerate(dataloader), desc = 'Epoch {}'.format(e), total = len(dataloader)):
         optimizer.zero_grad()
-        data = torch.cat((good,tumor), 0).to(device)
+        data = torch.cat((good_cropped,tumor), 0).to(device)
         labels = torch.ones(data.shape[0]).type(torch.int64).to(device)
-        labels[:good.shape[0]] = 0
+        labels[:good_cropped.shape[0]] = 0
         shuffler = np.arange(labels.shape[0])
         np.random.shuffle(shuffler)
         labels = labels[shuffler]
@@ -161,10 +161,10 @@ def validate(silent = True):
     tot = 0
 
     with torch.no_grad():
-        for batch_num,(target,mask,cropped,segment,tumor,good,rectified) in tqdm(enumerate(dataloader), desc = 'Epoch {}'.format(e), total = len(dataloader)):
-            data = torch.cat((good,tumor), 0).to(device)
+        for batch_num,(target,mask,cropped,segment,tumor,good_cropped,rectified) in tqdm(enumerate(dataloader), desc = 'Epoch {}'.format(e), total = len(dataloader)):
+            data = torch.cat((good_cropped,tumor), 0).to(device)
             labels = torch.ones(data.shape[0]).type(torch.int64).to(device)
-            labels[:good.shape[0]] = 0
+            labels[:good_cropped.shape[0]] = 0
             
             model.eval()
             outp = model(data)

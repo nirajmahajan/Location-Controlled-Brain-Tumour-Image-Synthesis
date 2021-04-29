@@ -17,6 +17,7 @@ from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
 from sklearn.decomposition import PCA
 import gc
+import matplotlib.patches as patches
 
 from myModels import Pix2pix
 from myDatasets import BRATS_T1c
@@ -115,12 +116,21 @@ else:
 def is_eval_mode():
     return args.eval
 
+def cropp(a2):
+    rr = torch.arange(a2.shape[1])[(a2>0.5).sum(1) > 0]
+    cc = torch.arange(a2.shape[0])[(a2>0.5).sum(0) > 0]
+    rmin = rr.min()
+    rmax = rr.max()
+    cmin = cc.min()
+    cmax = cc.max()
+    return rmin, rmax, cmin, cmax
+
 def train(e):
     print('\nTraining for epoch {}'.format(e))
     tot_loss_g = 0
     tot_loss_d = 0
 
-    for batch_num,(target,mask,cropped,segment,tumor, rectified) in tqdm(enumerate(dataloader), desc = 'Epoch {}'.format(e), total = len(dataloader)):
+    for batch_num,(target,mask,cropped,segment,tumor,good_cropped,rectified) in tqdm(enumerate(dataloader), desc = 'Epoch {}'.format(e), total = len(dataloader)):
         lg, ld = model.train_epoch(e, batch_num, mask,rectified, target)
         tot_loss_d += ld
         tot_loss_g += lg
@@ -136,27 +146,27 @@ def validate():
     num_samples = TRAIN_BATCH_SIZE
 
     with torch.no_grad():
-        for batch_num,(target,mask,cropped,segment,tumor, rectified) in enumerate(dataloader):
+        for batch_num,(target,mask,cropped,segment,tumor,good_cropped,rectified) in enumerate(dataloader):
             model.eval()
-            fake = model.generate(cropped.to(device))
+            fake = model.generate(mask,rectified)
             break
         for i in range(num_samples):
             s = rectified[i].squeeze().detach().cpu().numpy()
-            t = target[i].squeeze().detach().cpu().numpy()
+            t = PIL.Image.fromarray((255*rectified[i]).squeeze().detach().cpu().numpy().astype(np.uint8))
+            rmin,rmax,cmin,cmax = cropp(mask[i].squeeze())
+            rect = patches.Rectangle((cmin,rmin), (cmax-cmin), (rmax-rmin), linewidth=1, edgecolor='r', facecolor='none')
             f = fake[i].squeeze().detach().cpu().numpy()
-            fig = plt.figure(figsize = (9,3))
-            plt.subplot(1,3,1)
-            plt.imshow(s, cmap = 'gray')
-            plt.title('Normal (rectified) Image')
-            plt.axis('off')
-            plt.subplot(1,3,2)
-            plt.imshow(t, cmap = 'gray')
-            plt.title('Target Image')
-            plt.axis('off')
-            plt.subplot(1,3,3)
-            plt.imshow(f, cmap = 'gray')
-            plt.title('Generated Image')
-            plt.axis('off')
+            fig, ax = plt.subplots(1,3,figsize = (9,3), sharex = True)
+            ax[0].imshow(s, cmap = 'gray')
+            ax[0].set_title('Normal (rectified) Image')
+            ax[0].axis('off')
+            ax[1].imshow(t, cmap = 'gray')
+            ax[1].set_title('Bounding Box')
+            ax[1].add_patch(rect)
+            ax[1].axis('off')
+            ax[2].imshow(f, cmap = 'gray')
+            ax[2].set_title('Generated Image')
+            ax[2].axis('off')
             plt.savefig('images/test/test_{}.png'.format(i))
 
     os.system("cp -r ./images/train/* '{}'".format(os.path.join(runtime_path,'./images/train/')))
