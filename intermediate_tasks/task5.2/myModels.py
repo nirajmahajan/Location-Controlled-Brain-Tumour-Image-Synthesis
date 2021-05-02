@@ -122,7 +122,7 @@ class Pix2pix(nn.Module):
 
 
         lD = self.learn_D(inp.to(device), fake_images, target.to(device))
-        lG = self.learn_G(fake_images, inp.to(device), target.to(device), mask)
+        lG = self.learn_G(fake_images, inp.to(device), target.to(device), mask.to(device))
         return lG, lD
 
     def learn_D(self, inp, fake_images, target):
