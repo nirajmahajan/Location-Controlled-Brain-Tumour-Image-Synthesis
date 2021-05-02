@@ -1,1 +1,3 @@
 https://github.com/MaciejMazurowski/brain-segmentation/tree/master/skull-stripping
+
+L1 is median - https://doi.org/10.1198/000313001750358482
