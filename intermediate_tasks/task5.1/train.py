@@ -46,7 +46,7 @@ seed_torch(args.seed)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 TRAIN_BATCH_SIZE = 30
-SAVE_INTERVAL = 25
+SAVE_INTERVAL = 5
 STATE_INTERVAL = 200
 NUM_EPOCHS = 2000
 EXPERIMENT_ID = args.id
