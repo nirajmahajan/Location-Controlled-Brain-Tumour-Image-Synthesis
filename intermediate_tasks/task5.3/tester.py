@@ -50,7 +50,7 @@ SAVE_INTERVAL = 5
 STATE_INTERVAL = 200
 NUM_EPOCHS = 2000
 EXPERIMENT_ID = args.id
-expected_id = '5'
+expected_id = '5.3'
 assert(expected_id == EXPERIMENT_ID)
 glosses = []
 dlosses = []
@@ -90,7 +90,7 @@ model = Pix2pix()
 global pre_e
 pre_e = 0
 
-if args.resume or args.resume_from_drive:
+if args.resume or args.resume_from_drive or 1:
     if args.resume_from_drive:
         print('Copying the checkpoint to the runtime')
         os.system("cp -r '{}'state.pth* ./models".format(runtime_path))
@@ -139,6 +139,14 @@ def train(e):
     print('Total Discriminator Loss for epoch = {}'.format(tot_loss_d/batch_num))
     return tot_loss_g/batch_num, tot_loss_d/batch_num
 
+masklist = [torch.zeros((30,1,256,256)) for i in range(4)]
+masklist[0][:,0,70:115,100:150] = 1
+masklist[1][:,0,120:150,120:144] = 1
+masklist[2][:,0,90:120,160:200] = 1
+masklist[3][:,0,135:170,100:150] = 1
+
+fakelists = []
+
 def validate():
     print('\nTesting')
     dataset.set_train(train = False)
@@ -148,65 +156,35 @@ def validate():
     with torch.no_grad():
         for batch_num,(target,mask,cropped,segment,tumor,good_cropped,rectified) in enumerate(dataloader):
             model.eval()
-            fake = model.generate(mask,rectified)
+            for ii in range(4):
+                fakelists.append(model.generate(masklist[ii],rectified))
             break
         for i in range(num_samples):
-            s = rectified[i].squeeze().detach().cpu().numpy()
-            t = PIL.Image.fromarray((255*rectified[i]).squeeze().detach().cpu().numpy().astype(np.uint8))
-            rmin,rmax,cmin,cmax = cropp(mask[i].squeeze())
-            rect = patches.Rectangle((cmin,rmin), (cmax-cmin), (rmax-rmin), linewidth=1, edgecolor='r', facecolor='none')
-            f = fake[i].squeeze().detach().cpu().numpy()
-            fig, ax = plt.subplots(1,3,figsize = (9,3), sharex = True)
-            ax[0].imshow(s, cmap = 'gray')
-            ax[0].set_title('Normal (rectified) Image')
-            ax[0].axis('off')
-            ax[1].imshow(t, cmap = 'gray')
-            ax[1].set_title('Bounding Box')
-            ax[1].add_patch(rect)
-            ax[1].axis('off')
-            ax[2].imshow(f, cmap = 'gray')
-            ax[2].set_title('Generated Image')
-            ax[2].add_patch(rect)
-            ax[2].axis('off')
-            plt.savefig('images/test/test_{}.png'.format(i))
+            for ii in range(4):
+                r = (rectified[i]-rectified[i].min())
+                r = r/r.max()
+                t = PIL.Image.fromarray((255*r).squeeze().detach().cpu().numpy().astype(np.uint8))
+                rmin,rmax,cmin,cmax = cropp(masklist[ii][0,0,:,:].squeeze())
+                rect = patches.Rectangle((cmin,rmin), (cmax-cmin), (rmax-rmin), linewidth=1, edgecolor='r', facecolor='none')
+                rect2 = patches.Rectangle((cmin,rmin), (cmax-cmin), (rmax-rmin), linewidth=1, edgecolor='r', facecolor='none')
+                f = fakelists[ii][i]
+                f = f - f.min()
+                f = f/f.max()
+                f = PIL.Image.fromarray((255*f).squeeze().detach().cpu().numpy().astype(np.uint8))
+                fig, ax = plt.subplots(1,2,figsize = (6,3), sharex = True)
+                ax[0].imshow(t, cmap = 'gray')
+                ax[0].set_title('Healthy Image')
+                ax[0].add_patch(rect)
+                ax[0].axis('off')
+                ax[1].imshow(f, cmap = 'gray')
+                ax[1].set_title('Generated Image')
+                ax[1].add_patch(rect2)
+                ax[1].axis('off')
+                plt.savefig('images/test/test_{}_{}.png'.format(i, ii))
 
     os.system("cp -r ./images/train/* '{}'".format(os.path.join(runtime_path,'./images/train/')))
     os.system("cp -r ./images/test/* '{}'".format(os.path.join(runtime_path,'./images/test/')))
     
 
-if args.eval:
-    validate()
-    os._exit(0)
-
-for e in range(NUM_EPOCHS):
-
-    model_state = e//STATE_INTERVAL
-    if pre_e > 0:
-        pre_e -= 1
-        continue
-
-    if e % SAVE_INTERVAL == 0:
-        seed_torch(args.seed)
-
-    lg, ld = train(e)
-    glosses.append(lg)
-    dlosses.append(ld)
-
-    dic = {}
-    dic['e'] = e+1
-    dic['model'] = model.state_dict()
-    dic['optimizer_G'] = model.optimizer_G.state_dict()
-    dic['optimizer_D'] = model.optimizer_D.state_dict()
-    dic['dlosses'] = dlosses
-    dic['glosses'] = glosses
-
-
-    if (e+1) % SAVE_INTERVAL == 0:
-        torch.save(dic, local_path + 'checkpoint_{}.pth'.format(model_state))
-        torch.save({'state': model_state}, local_path + 'state.pth')
-        print('Saving model to {}'.format(runtime_path))
-        print('Copying checkpoint to drive')
-        os.system("cp -r ./models/checkpoint_{}.pth '{}'".format(model_state, runtime_path))
-        os.system("cp -r ./models/state.pth '{}'".format(runtime_path))
-        os.system("cp -r ./images/train/* '{}'".format(os.path.join(runtime_path,'./images/train/')))
-        os.system("cp -r ./images/test/* '{}'".format(os.path.join(runtime_path,'./images/test/')))
+validate()
+ 
