@@ -8,7 +8,7 @@ extendable to other medical imaging applications like pneumonia, retinopathy, et
 
 ![](https://github.com/nirajmahajan/Location-Controlled-Brain-Tumour-Image-Synthesis/blob/master/images/pipeline.png)
 
-### Rectifier
+## Rectifier
 
 Normal Brain images are not readily available as it involves interaction with magnetic waves so healthy brain images are scarce. Given a MRI image with a tumour, the corresponding healthy brain image is even rarer.
 To deal with above, we came up with a rectifier network which performs image in-painting on a brain image with the tumour part cropped out that generates the corresponding healthy image.
@@ -19,7 +19,7 @@ The key idea is to treat the tumour as a outlier in the image. That is, if we co
 
 ![](https://github.com/nirajmahajan/Location-Controlled-Brain-Tumour-Image-Synthesis/blob/master/images/rectifier2.png)
 
-### Tumour Insertion
+## Tumour Insertion
 
 For this section, we will assume that we have tumour images, and the corresponding healthy image (given we have the rectifier). Given a healthy image and a custom bounding box, we need to insert a tumour at the specified location.
 
@@ -38,6 +38,12 @@ We have shown and compared the results for all 4 methods for the same healthy im
 ![](https://github.com/nirajmahajan/Location-Controlled-Brain-Tumour-Image-Synthesis/blob/master/images/tumour3.png)
 
 ![](https://github.com/nirajmahajan/Location-Controlled-Brain-Tumour-Image-Synthesis/blob/master/images/tumour4.png)
+
+## Contributors
+
+[Niraj Mahajan](https://www.cse.iitb.ac.in/~nirajm)
+
+[Abhinav Kumar](https://www.cse.iitb.ac.in/~abhinavkumar)
 
 
 
