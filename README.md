@@ -15,6 +15,10 @@ To deal with above, we came up with a rectifier network which performs image in-
 
 The key idea is to treat the tumour as a outlier in the image. That is, if we consider a bounding box at some location, then the event of this bounding box to have a tumour is an outlier. We exploit this property of Neural Networks to develop a rectifier. 
 
+![](https://github.com/nirajmahajan/Location-Controlled-Brain-Tumour-Image-Synthesis/blob/master/images/rectifier1.png)
+
+![](https://github.com/nirajmahajan/Location-Controlled-Brain-Tumour-Image-Synthesis/blob/master/images/rectifier2.png)
+
 ### Tumour Insertion
 
 For this section, we will assume that we have tumour images, and the corresponding healthy image (given we have the rectifier). Given a healthy image and a custom bounding box, we need to insert a tumour at the specified location.
@@ -26,4 +30,14 @@ For the Adversarial Loss, we have trained both lsGAN as well as vanilla GAN. Bot
 - L1 loss for the tumour part, MSE loss for the rest (1:100 ratio weight)
 
 We have shown and compared the results for all 4 methods for the same healthy image, with different bounding boxes.
+
+![](https://github.com/nirajmahajan/Location-Controlled-Brain-Tumour-Image-Synthesis/blob/master/images/tumour1.png)
+
+![](https://github.com/nirajmahajan/Location-Controlled-Brain-Tumour-Image-Synthesis/blob/master/images/tumour2.png)
+
+![](https://github.com/nirajmahajan/Location-Controlled-Brain-Tumour-Image-Synthesis/blob/master/images/tumour3.png)
+
+![](https://github.com/nirajmahajan/Location-Controlled-Brain-Tumour-Image-Synthesis/blob/master/images/tumour4.png)
+
+
 
