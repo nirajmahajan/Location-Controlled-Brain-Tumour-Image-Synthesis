@@ -6,11 +6,7 @@ extendable to other medical imaging applications like pneumonia, retinopathy, et
 
 ## The Pipeline
 
-```
-<p align="center">
-    <img src="https://github.com/nirajmahajan/Location-Controlled-Brain-Tumour-Image-Synthesis/blob/master/images/pipeline.png" width="640"\>
-</p>
-```
+![](https://github.com/nirajmahajan/Location-Controlled-Brain-Tumour-Image-Synthesis/blob/master/images/pipeline.png)
 
 ### Rectifier
 
